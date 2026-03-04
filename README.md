@@ -162,10 +162,8 @@
 </head>
 <body>
 
-<!-- INPUT CACHÉ POUR LA CAPTURE PHOTO -->
 <input type="file" id="hidden-camera-input" accept="image/*" capture="environment" style="display: none;">
 
-<!-- LOGIN SCREEN -->
 <div id="login-screen">
     <div class="login-card">
         <div class="login-header">
@@ -231,13 +229,13 @@
             </div>
 
             <div id="project-details" style="display: none;">
-                <!-- HEADER CARTE -->
                 <div class="card">
                     <div style="display: flex; justify-content: space-between;">
                         <div>
                             <span id="view-badge" class="badge"></span>
                             <h2 id="view-title" style="margin: 10px 0 5px 0;"></h2>
                             <p id="view-desc" style="font-size: 0.8rem; color: #64748b; margin: 0;"></p>
+                            <p id="view-dimensions" style="font-size: 0.75rem; color: var(--gabon-bleu); margin-top: 5px; font-weight: 500;"></p>
                         </div>
                         <button class="btn-delete" onclick="deleteProject()"><i data-lucide="trash-2" size="18"></i></button>
                     </div>
@@ -277,9 +275,8 @@
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                     <div class="card">
-                        <h3 style="margin-top:0">Finances Estimées</h3>
+                        <h3 style="margin-top:0">Finances Estimées (Taxes Gabon)</h3>
                         <div id="financial-breakdown" style="font-size: 0.8rem; color: #64748b; line-height: 1.6;">
-                            <!-- Détails de calcul insérés ici -->
                         </div>
                         <p style="font-size: 1.2rem; border-top: 1px solid var(--border); margin-top: 10px; padding-top: 10px;">Total Client : <strong id="val-total" style="color:var(--gabon-vert)">0 F</strong></p>
                     </div>
@@ -315,12 +312,16 @@
         </div>
 
         <div style="margin-top: 15px;">
-            <label style="font-size: 0.75rem; font-weight: bold; color: #64748b;">CATÉGORIE DE MARCHANDISE</label>
+            <label style="font-size: 0.75rem; font-weight: bold; color: #64748b;">CATÉGORIE & RÈGLEMENTATION DOUANE GABON</label>
             <select id="new-category" onchange="updatePricePreview()">
-                <option value="divers">Divers / Colis standard</option>
-                <option value="electronique">Électronique / Informatique</option>
-                <option value="vehicule_leger">Véhicule Léger (Moto/Scooter)</option>
-                <option value="automobile">Automobile / Gros Engin</option>
+                <!-- Catégories alignées sur la nomenclature douanière gabonaise -->
+                <option value="divers">Colis standard (Vêtements, Divers)</option>
+                <option value="alimentaire">Produits Alimentaires (Taxes spécifiques)</option>
+                <option value="cosmetique">Cosmétiques (Conformité AGANOR)</option>
+                <option value="electronique">High-Tech (Téléphones, PC)</option>
+                <option value="pieces_auto">Pièces Détachées (Poids/Volume)</option>
+                <option value="vehicule_leger">Moto / Scooter (Dédouanement fixe)</option>
+                <option value="automobile">Véhicule (Importation réglementée)</option>
             </select>
         </div>
 
@@ -332,6 +333,15 @@
             <div>
                 <label style="font-size: 0.75rem; font-weight: bold; color: #64748b;">POIDS EST. (KG) / UNITÉ</label>
                 <input type="number" id="new-weight" value="1" oninput="updatePricePreview()">
+            </div>
+        </div>
+
+        <div style="margin-top: 15px;">
+            <label style="font-size: 0.75rem; font-weight: bold; color: #64748b;">DIMENSIONS DU COLIS (L x l x H en cm)</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                <input type="number" id="new-dim-l" placeholder="Long.">
+                <input type="number" id="new-dim-w" placeholder="Larg.">
+                <input type="number" id="new-dim-h" placeholder="Haut.">
             </div>
         </div>
         
@@ -360,12 +370,15 @@
 </div>
 
 <script>
-    // --- CONFIGURATION DE TARIFICATION DYNAMIQUE ---
+    // --- CONFIGURATION DE TARIFICATION & DOUANE GABON ---
     const FREIGHT_CONFIG = {
-        divers: { fret_kg: 8500, douane_fixe: 25000, label: "Divers" },
-        electronique: { fret_kg: 12000, douane_fixe: 45000, label: "Électronique" },
-        vehicule_leger: { fret_kg: 150000, douane_fixe: 120000, label: "Véhicule Léger", is_flat_fret: true },
-        automobile: { fret_kg: 850000, douane_fixe: 650000, label: "Automobile", is_flat_fret: true }
+        divers: { fret_kg: 8500, douane_fixe: 25000, aganor: 0, label: "Divers" },
+        alimentaire: { fret_kg: 9500, douane_fixe: 35000, aganor: 5000, label: "Alimentaire" },
+        cosmetique: { fret_kg: 10000, douane_fixe: 40000, aganor: 10000, label: "Cosmétiques" },
+        electronique: { fret_kg: 12000, douane_fixe: 45000, aganor: 5000, label: "Électronique" },
+        pieces_auto: { fret_kg: 9000, douane_fixe: 50000, aganor: 0, label: "Pièces Auto" },
+        vehicule_leger: { fret_kg: 150000, douane_fixe: 120000, aganor: 15000, label: "Véhicule Léger", is_flat_fret: true },
+        automobile: { fret_kg: 850000, douane_fixe: 650000, aganor: 50000, label: "Automobile", is_flat_fret: true }
     };
 
     const USERS = [
@@ -391,13 +404,14 @@
     function calculateTotal(p) {
         const config = FREIGHT_CONFIG[p.category || 'divers'];
         const fretBase = config.is_flat_fret ? config.fret_kg : (config.fret_kg * (p.weight || 1));
-        const totalUnitaire = p.achat + fretBase + config.douane_fixe;
+        const totalUnitaire = p.achat + fretBase + config.douane_fixe + config.aganor;
         return {
             total: totalUnitaire * p.qty,
             details: {
                 achat: p.achat * p.qty,
                 fret: fretBase * p.qty,
                 douane: config.douane_fixe * p.qty,
+                aganor: config.aganor * p.qty,
                 unitaire: totalUnitaire
             }
         };
@@ -412,7 +426,7 @@
         const mockP = { achat, weight, qty, category: cat };
         const result = calculateTotal(mockP);
         
-        document.getElementById('price-preview').innerHTML = `Estimation : <strong>${result.total.toLocaleString()} F CFA</strong> <br> <small>(Achat + Fret + Douane incluse)</small>`;
+        document.getElementById('price-preview').innerHTML = `Estimation : <strong>${result.total.toLocaleString()} F CFA</strong> <br> <small>(Achat + Fret + Douane + Taxes Gabon incluse)</small>`;
     }
 
     function attemptLogin() {
@@ -484,13 +498,23 @@
         document.getElementById('project-details').style.display = 'block';
         document.getElementById('view-title').innerText = p.name;
         document.getElementById('view-desc').innerText = `Hub: ${p.city} | Créé le ${p.date}`;
+        
+        const dimEl = document.getElementById('view-dimensions');
+        if (p.dimensions && p.dimensions.l) {
+            dimEl.innerText = `Dimensions: ${p.dimensions.l}x${p.dimensions.w}x${p.dimensions.h} cm`;
+            dimEl.style.display = 'block';
+        } else {
+            dimEl.style.display = 'none';
+        }
+
         document.getElementById('view-client-info').innerText = `${p.clientName} (${p.clientPhone || 'Pas de contact'})`;
         document.getElementById('view-notes').value = p.notes || "";
         
         document.getElementById('financial-breakdown').innerHTML = `
             Achat global : ${financial.details.achat.toLocaleString()} F<br>
-            Fret estimé : ${financial.details.fret.toLocaleString()} F<br>
-            Forfait Douane : ${financial.details.douane.toLocaleString()} F
+            Fret maritime : ${financial.details.fret.toLocaleString()} F<br>
+            Dédouanement Owendo : ${financial.details.douane.toLocaleString()} F<br>
+            Redevance AGANOR : ${financial.details.aganor.toLocaleString()} F
         `;
         document.getElementById('val-total').innerText = financial.total.toLocaleString() + " F CFA";
         
@@ -581,6 +605,11 @@
             achat: parseInt(document.getElementById('new-achat').value) || 0,
             weight: parseFloat(document.getElementById('new-weight').value) || 1,
             category: document.getElementById('new-category').value,
+            dimensions: {
+                l: document.getElementById('new-dim-l').value,
+                w: document.getElementById('new-dim-w').value,
+                h: document.getElementById('new-dim-h').value
+            },
             qty: parseInt(document.getElementById('new-qty').value) || 1,
             city: document.getElementById('new-city').value,
             step: 0,
@@ -608,7 +637,13 @@
         const p = projects.find(proj => proj.id === currentId);
         if(p) { p.notes = document.getElementById('view-notes').value; save(); }
     }
-    function showModal() { document.getElementById('modal-project').style.display = 'flex'; updatePricePreview(); }
+    function showModal() { 
+        document.getElementById('modal-project').style.display = 'flex'; 
+        document.getElementById('new-dim-l').value = "";
+        document.getElementById('new-dim-w').value = "";
+        document.getElementById('new-dim-h').value = "";
+        updatePricePreview(); 
+    }
     function hideModal() { document.getElementById('modal-project').style.display = 'none'; }
     function logout() { location.reload(); }
 </script>
