@@ -336,7 +336,7 @@
 <script>
     // Utilisateurs pré-enregistrés
     const USERS = [
-        { email: 'mbengmveyadmingmail.com', password: '12901564', name: 'Super Admin', role: 'ADMINISTRATEUR' },
+        { email: 'mbengmveyadmin@gmail.com', password: '12901564', name: 'Super Admin', role: 'ADMINISTRATEUR' },
         { email: 'assistantgestion@ct241.com', password: '20022029', name: 'Equipe Logistique', role: 'GESTIONNAIRE' }
     ];
 
