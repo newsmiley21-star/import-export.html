@@ -337,7 +337,7 @@
     // Utilisateurs pré-enregistrés
     const USERS = [
         { email: 'mbengmveyadmingmail.com', password: '12901564', name: 'Super Admin', role: 'ADMINISTRATEUR' },
-        { email: 'assitantgestion@ct241.com', password: '20022026', name: 'Equipe Logistique', role: 'GESTIONNAIRE' }
+        { email: 'assistantgestion@ct241.com', password: '20022029', name: 'Equipe Logistique', role: 'GESTIONNAIRE' }
     ];
 
     let projects = JSON.parse(localStorage.getItem('ct241_secured_v1')) || [];
