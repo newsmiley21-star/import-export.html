@@ -162,6 +162,9 @@
 </head>
 <body>
 
+<!-- INPUT CACHÉ POUR LA CAPTURE PHOTO -->
+<input type="file" id="hidden-camera-input" accept="image/*" capture="environment" style="display: none;">
+
 <!-- LOGIN SCREEN -->
 <div id="login-screen">
     <div class="login-card">
@@ -344,6 +347,7 @@
     let currentId = null;
     let currentUser = null;
     let currentFilter = 'active';
+    let targetStepForUpload = null;
 
     const STEP_NAMES = ["Achat Chine", "Fret Maritime", "Douane Owendo", "Livraison Client"];
 
@@ -351,21 +355,20 @@
     window.onload = function() {
         lucide.createIcons();
         
-        // Listener pour le bouton de connexion
         document.getElementById('btn-submit-login').addEventListener('click', attemptLogin);
         
-        // Listener pour la touche Entrée
         document.getElementById('login-password').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') attemptLogin();
         });
+
+        // Configurer l'écouteur pour l'input de caméra
+        document.getElementById('hidden-camera-input').addEventListener('change', handleFileSelect);
     }
 
     function attemptLogin() {
         const emailInput = document.getElementById('login-email').value.trim().toLowerCase();
         const passInput = document.getElementById('login-password').value;
         const errorMsg = document.getElementById('login-error');
-
-        console.log("Tentative de connexion pour:", emailInput);
 
         const userFound = USERS.find(u => u.email.toLowerCase() === emailInput && u.password === passInput);
 
@@ -481,7 +484,7 @@
         container.innerHTML = '';
 
         const stepPhotos = p.photos ? p.photos[stepIdx] || [] : [];
-        stepPhotos.forEach(src => {
+        stepPhotos.forEach((src, photoIndex) => {
             const img = document.createElement('img');
             img.src = src;
             img.className = 'photo-item';
@@ -493,7 +496,7 @@
             const addBtn = document.createElement('div');
             addBtn.className = 'photo-upload-placeholder';
             addBtn.innerHTML = `<i data-lucide="camera" size="20"></i><span>Capturer preuve</span>`;
-            addBtn.onclick = () => simulateCapture(stepIdx);
+            addBtn.onclick = () => triggerCamera(stepIdx);
             container.appendChild(addBtn);
         } else if (stepPhotos.length === 0) {
             container.innerHTML = `<p style="font-size:0.75rem; color:#94a3b8;">Aucune archive photo pour cette étape.</p>`;
@@ -501,17 +504,30 @@
         lucide.createIcons();
     }
 
-    function simulateCapture(stepIdx) {
-        const mocks = [
-            "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=200",
-            "https://images.unsplash.com/photo-1553413077-190dd305871c?w=200",
-            "https://images.unsplash.com/photo-1569058242253-92a9c73f49bc?w=200"
-        ];
-        const p = projects.find(proj => proj.id === currentId);
-        if (!p.photos[stepIdx]) p.photos[stepIdx] = [];
-        p.photos[stepIdx].push(mocks[Math.floor(Math.random() * mocks.length)]);
-        save();
-        renderPhotos(stepIdx);
+    // --- LOGIQUE PHOTO RÉELLE ---
+    function triggerCamera(stepIdx) {
+        targetStepForUpload = stepIdx;
+        document.getElementById('hidden-camera-input').click();
+    }
+
+    function handleFileSelect(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const base64Image = e.target.result;
+            const p = projects.find(proj => proj.id === currentId);
+            if (p && targetStepForUpload !== null) {
+                if (!p.photos[targetStepForUpload]) p.photos[targetStepForUpload] = [];
+                p.photos[targetStepForUpload].push(base64Image);
+                save();
+                renderPhotos(targetStepForUpload);
+            }
+        };
+        reader.readAsDataURL(file);
+        // Réinitialiser l'input pour permettre de reprendre la même photo si besoin
+        event.target.value = '';
     }
 
     function validateCurrentStep() {
