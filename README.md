@@ -180,10 +180,10 @@
         
         <div class="form-group">
             <label>Mot de passe</label>
-            <input type="password" id="login-password" placeholder="••••••••" onkeypress="if(event.key==='Enter') attemptLogin()">
+            <input type="password" id="login-password" placeholder="••••••••">
         </div>
 
-        <button class="btn-primary" onclick="attemptLogin()" style="margin-top: 10px;">SE CONNECTER</button>
+        <button class="btn-primary" id="btn-submit-login" style="margin-top: 10px;">SE CONNECTER</button>
         
         <p id="login-error" style="color: var(--danger); font-size: 0.8rem; margin-top: 15px; display: none; text-align: center; background: #fee2e2; padding: 8px; border-radius: 6px;">Identifiants incorrects.</p>
         
@@ -326,7 +326,7 @@
             </select>
         </div>
 
-        <div class="actions" style="margin-top:25px; pt-15; border-top: 1px solid var(--border); padding-top: 20px;">
+        <div class="actions" style="margin-top:25px; pt-15; border-top: 1px solid var(--border); padding-top: 20px; display: flex; gap: 10px;">
             <button onclick="hideModal()" style="flex:1; border:none; border-radius:10px; cursor:pointer; background:#f1f5f9; padding:12px; font-weight: bold; color: #64748b;">Annuler</button>
             <button onclick="addProject()" class="btn-primary" style="flex:1;">Créer le dossier</button>
         </div>
@@ -334,7 +334,7 @@
 </div>
 
 <script>
-    // Utilisateurs pré-enregistrés
+    // --- DONNÉES UTILISATEURS ---
     const USERS = [
         { email: 'mbengmveyadmin@gmail.com', password: '12901564', name: 'Super Admin', role: 'ADMINISTRATEUR' },
         { email: 'assistantgestion@ct241.com', password: '20022029', name: 'Equipe Logistique', role: 'GESTIONNAIRE' }
@@ -347,12 +347,27 @@
 
     const STEP_NAMES = ["Achat Chine", "Fret Maritime", "Douane Owendo", "Livraison Client"];
 
-    function attemptLogin() {
-        const email = document.getElementById('login-email').value.trim();
-        const pass = document.getElementById('login-password').value;
-        const error = document.getElementById('login-error');
+    // --- INITIALISATION ---
+    window.onload = function() {
+        lucide.createIcons();
+        
+        // Listener pour le bouton de connexion
+        document.getElementById('btn-submit-login').addEventListener('click', attemptLogin);
+        
+        // Listener pour la touche Entrée
+        document.getElementById('login-password').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') attemptLogin();
+        });
+    }
 
-        const userFound = USERS.find(u => u.email === email && u.password === pass);
+    function attemptLogin() {
+        const emailInput = document.getElementById('login-email').value.trim().toLowerCase();
+        const passInput = document.getElementById('login-password').value;
+        const errorMsg = document.getElementById('login-error');
+
+        console.log("Tentative de connexion pour:", emailInput);
+
+        const userFound = USERS.find(u => u.email.toLowerCase() === emailInput && u.password === passInput);
 
         if (userFound) {
             currentUser = userFound;
@@ -360,19 +375,19 @@
             document.getElementById('app-content').style.display = 'flex';
             document.getElementById('current-user-name').innerText = userFound.name;
             document.getElementById('current-user-role').innerText = userFound.role;
-            init();
+            initApp();
         } else {
-            error.style.display = 'block';
-            setTimeout(() => { error.style.display = 'none'; }, 3000);
+            errorMsg.style.display = 'block';
+            setTimeout(() => { errorMsg.style.display = 'none'; }, 3000);
         }
     }
 
-    function logout() { location.reload(); }
-
-    function init() {
+    function initApp() {
         lucide.createIcons();
         renderList();
     }
+
+    function logout() { location.reload(); }
 
     function switchList(type) {
         currentFilter = type;
@@ -420,6 +435,8 @@
     function selectProject(id) {
         currentId = id;
         const p = projects.find(proj => proj.id === id);
+        if (!p) return;
+
         const stepIdx = (p.step >= 4) ? 3 : p.step;
         
         document.getElementById('empty-state').style.display = 'none';
@@ -440,6 +457,8 @@
 
     function selectStep(idx) {
         const p = projects.find(proj => proj.id === currentId);
+        if (!p) return;
+
         const steps = document.querySelectorAll('.step');
         steps.forEach((s, i) => {
             s.classList.remove('completed', 'current');
@@ -489,6 +508,7 @@
             "https://images.unsplash.com/photo-1569058242253-92a9c73f49bc?w=200"
         ];
         const p = projects.find(proj => proj.id === currentId);
+        if (!p.photos[stepIdx]) p.photos[stepIdx] = [];
         p.photos[stepIdx].push(mocks[Math.floor(Math.random() * mocks.length)]);
         save();
         renderPhotos(stepIdx);
@@ -496,12 +516,16 @@
 
     function validateCurrentStep() {
         const p = projects.find(proj => proj.id === currentId);
-        if(p.photos[p.step].length === 0) return alert("Une photo de preuve est requise avant de valider.");
+        if(!p.photos[p.step] || p.photos[p.step].length === 0) {
+            return alert("Une photo de preuve est requise avant de valider.");
+        }
 
         if(confirm("Confirmer la validation de cette étape ?")) {
             p.step++;
             save();
-            if (p.step >= 4) switchList('done');
+            if (p.step >= 4) {
+                switchList('done');
+            }
             selectProject(currentId);
         }
     }
@@ -544,10 +568,12 @@
     }
 
     function save() { localStorage.setItem('ct241_secured_v1', JSON.stringify(projects)); }
+    
     function saveNotes() { 
         const p = projects.find(proj => proj.id === currentId);
         if(p) { p.notes = document.getElementById('view-notes').value; save(); }
     }
+    
     function showModal() { document.getElementById('modal-project').style.display = 'flex'; }
     function hideModal() { document.getElementById('modal-project').style.display = 'none'; }
 </script>
