@@ -151,8 +151,8 @@
         }
 
         /* --- UI ELEMENTS --- */
-        input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; margin-top: 5px; font-size: 0.9rem; transition: 0.2s; }
-        input:focus { border-color: var(--gabon-bleu); outline: none; box-shadow: 0 0 0 3px rgba(58, 117, 196, 0.1); }
+        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; margin-top: 5px; font-size: 0.9rem; transition: 0.2s; }
+        input:focus, select:focus { border-color: var(--gabon-bleu); outline: none; box-shadow: 0 0 0 3px rgba(58, 117, 196, 0.1); }
         .btn-primary { background: var(--gabon-vert); color: white; border: none; padding: 12px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; }
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1500; backdrop-filter: blur(4px); }
         .modal-content { background: white; padding: 30px; border-radius: 20px; width: 450px; max-height: 90vh; overflow-y: auto; }
@@ -277,12 +277,15 @@
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                     <div class="card">
-                        <h3 style="margin-top:0">Finances</h3>
-                        <p style="font-size: 1.2rem;">Total : <strong id="val-total" style="color:var(--gabon-vert)">0 F</strong></p>
+                        <h3 style="margin-top:0">Finances Estimées</h3>
+                        <div id="financial-breakdown" style="font-size: 0.8rem; color: #64748b; line-height: 1.6;">
+                            <!-- Détails de calcul insérés ici -->
+                        </div>
+                        <p style="font-size: 1.2rem; border-top: 1px solid var(--border); margin-top: 10px; padding-top: 10px;">Total Client : <strong id="val-total" style="color:var(--gabon-vert)">0 F</strong></p>
                     </div>
                     <div class="card">
                         <h3 style="margin-top:0">Notes internes</h3>
-                        <textarea id="view-notes" style="width:100%; height:80px; border:1px solid var(--border); background:#fcfcfc; padding:10px; border-radius:8px; resize:none;" onblur="saveNotes()" placeholder="Ajouter une observation..."></textarea>
+                        <textarea id="view-notes" style="height:80px; resize:none;" onblur="saveNotes()" placeholder="Ajouter une observation..."></textarea>
                     </div>
                 </div>
             </div>
@@ -311,25 +314,45 @@
             </div>
         </div>
 
-        <div style="margin-top: 15px; display:grid; grid-template-columns:1fr 1fr; gap:15px;">
-            <div>
-                <label style="font-size: 0.75rem; font-weight: bold; color: #64748b;">PRIX ACHAT UNITAIRE</label>
-                <input type="number" id="new-achat" placeholder="F CFA">
-            </div>
-            <div>
-                <label style="font-size: 0.75rem; font-weight: bold; color: #64748b;">QUANTITÉ</label>
-                <input type="number" id="new-qty" value="1">
-            </div>
-        </div>
-        
         <div style="margin-top: 15px;">
-            <label style="font-size: 0.75rem; font-weight: bold; color: #64748b;">HUB D'EXPÉDITION (CHINE)</label>
-            <select id="new-city">
-                <option>Jiangsu</option><option>Guangzhou</option><option>Shenzhen</option><option>Yiwu</option>
+            <label style="font-size: 0.75rem; font-weight: bold; color: #64748b;">CATÉGORIE DE MARCHANDISE</label>
+            <select id="new-category" onchange="updatePricePreview()">
+                <option value="divers">Divers / Colis standard</option>
+                <option value="electronique">Électronique / Informatique</option>
+                <option value="vehicule_leger">Véhicule Léger (Moto/Scooter)</option>
+                <option value="automobile">Automobile / Gros Engin</option>
             </select>
         </div>
 
-        <div class="actions" style="margin-top:25px; pt-15; border-top: 1px solid var(--border); padding-top: 20px; display: flex; gap: 10px;">
+        <div style="margin-top: 15px; display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+            <div>
+                <label style="font-size: 0.75rem; font-weight: bold; color: #64748b;">PRIX ACHAT UNITAIRE (F)</label>
+                <input type="number" id="new-achat" placeholder="Ex: 500000" oninput="updatePricePreview()">
+            </div>
+            <div>
+                <label style="font-size: 0.75rem; font-weight: bold; color: #64748b;">POIDS EST. (KG) / UNITÉ</label>
+                <input type="number" id="new-weight" value="1" oninput="updatePricePreview()">
+            </div>
+        </div>
+        
+        <div style="margin-top: 15px; display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+            <div>
+                <label style="font-size: 0.75rem; font-weight: bold; color: #64748b;">QUANTITÉ</label>
+                <input type="number" id="new-qty" value="1" oninput="updatePricePreview()">
+            </div>
+            <div>
+                <label style="font-size: 0.75rem; font-weight: bold; color: #64748b;">HUB D'EXPÉDITION</label>
+                <select id="new-city">
+                    <option>Guangzhou</option><option>Shenzhen</option><option>Yiwu</option><option>Jiangsu</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="price-preview" style="margin-top: 15px; padding: 12px; background: #eff6ff; border-radius: 8px; font-size: 0.8rem; color: var(--gabon-bleu); border: 1px dashed var(--gabon-bleu);">
+            Estimation totale : <strong>0 F CFA</strong>
+        </div>
+
+        <div class="actions" style="margin-top:25px; border-top: 1px solid var(--border); padding-top: 20px; display: flex; gap: 10px;">
             <button onclick="hideModal()" style="flex:1; border:none; border-radius:10px; cursor:pointer; background:#f1f5f9; padding:12px; font-weight: bold; color: #64748b;">Annuler</button>
             <button onclick="addProject()" class="btn-primary" style="flex:1;">Créer le dossier</button>
         </div>
@@ -337,13 +360,20 @@
 </div>
 
 <script>
-    // --- DONNÉES UTILISATEURS ---
+    // --- CONFIGURATION DE TARIFICATION DYNAMIQUE ---
+    const FREIGHT_CONFIG = {
+        divers: { fret_kg: 8500, douane_fixe: 25000, label: "Divers" },
+        electronique: { fret_kg: 12000, douane_fixe: 45000, label: "Électronique" },
+        vehicule_leger: { fret_kg: 150000, douane_fixe: 120000, label: "Véhicule Léger", is_flat_fret: true },
+        automobile: { fret_kg: 850000, douane_fixe: 650000, label: "Automobile", is_flat_fret: true }
+    };
+
     const USERS = [
         { email: 'mbengmveyadmin@gmail.com', password: '12901564', name: 'Super Admin', role: 'ADMINISTRATEUR' },
         { email: 'assistantgestion@ct241.com', password: '20022029', name: 'Equipe Logistique', role: 'GESTIONNAIRE' }
     ];
 
-    let projects = JSON.parse(localStorage.getItem('ct241_secured_v1')) || [];
+    let projects = JSON.parse(localStorage.getItem('ct241_secured_v2')) || [];
     let currentId = null;
     let currentUser = null;
     let currentFilter = 'active';
@@ -351,25 +381,43 @@
 
     const STEP_NAMES = ["Achat Chine", "Fret Maritime", "Douane Owendo", "Livraison Client"];
 
-    // --- INITIALISATION ---
     window.onload = function() {
         lucide.createIcons();
-        
         document.getElementById('btn-submit-login').addEventListener('click', attemptLogin);
-        
-        document.getElementById('login-password').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') attemptLogin();
-        });
-
-        // Configurer l'écouteur pour l'input de caméra
+        document.getElementById('login-password').addEventListener('keypress', (e) => e.key === 'Enter' && attemptLogin());
         document.getElementById('hidden-camera-input').addEventListener('change', handleFileSelect);
+    }
+
+    function calculateTotal(p) {
+        const config = FREIGHT_CONFIG[p.category || 'divers'];
+        const fretBase = config.is_flat_fret ? config.fret_kg : (config.fret_kg * (p.weight || 1));
+        const totalUnitaire = p.achat + fretBase + config.douane_fixe;
+        return {
+            total: totalUnitaire * p.qty,
+            details: {
+                achat: p.achat * p.qty,
+                fret: fretBase * p.qty,
+                douane: config.douane_fixe * p.qty,
+                unitaire: totalUnitaire
+            }
+        };
+    }
+
+    function updatePricePreview() {
+        const achat = parseInt(document.getElementById('new-achat').value) || 0;
+        const weight = parseFloat(document.getElementById('new-weight').value) || 1;
+        const qty = parseInt(document.getElementById('new-qty').value) || 1;
+        const cat = document.getElementById('new-category').value;
+        
+        const mockP = { achat, weight, qty, category: cat };
+        const result = calculateTotal(mockP);
+        
+        document.getElementById('price-preview').innerHTML = `Estimation : <strong>${result.total.toLocaleString()} F CFA</strong> <br> <small>(Achat + Fret + Douane incluse)</small>`;
     }
 
     function attemptLogin() {
         const emailInput = document.getElementById('login-email').value.trim().toLowerCase();
         const passInput = document.getElementById('login-password').value;
-        const errorMsg = document.getElementById('login-error');
-
         const userFound = USERS.find(u => u.email.toLowerCase() === emailInput && u.password === passInput);
 
         if (userFound) {
@@ -378,19 +426,13 @@
             document.getElementById('app-content').style.display = 'flex';
             document.getElementById('current-user-name').innerText = userFound.name;
             document.getElementById('current-user-role').innerText = userFound.role;
-            initApp();
+            renderList();
         } else {
+            const errorMsg = document.getElementById('login-error');
             errorMsg.style.display = 'block';
             setTimeout(() => { errorMsg.style.display = 'none'; }, 3000);
         }
     }
-
-    function initApp() {
-        lucide.createIcons();
-        renderList();
-    }
-
-    function logout() { location.reload(); }
 
     function switchList(type) {
         currentFilter = type;
@@ -402,14 +444,10 @@
     function renderList() {
         const list = document.getElementById('project-list');
         list.innerHTML = '';
-        
-        const activeProjects = projects.filter(p => p.step < 4);
-        const doneProjects = projects.filter(p => p.step >= 4);
+        const filtered = projects.filter(p => currentFilter === 'active' ? p.step < 4 : p.step >= 4);
 
-        document.getElementById('count-active').innerText = activeProjects.length;
-        document.getElementById('count-done').innerText = doneProjects.length;
-
-        const filtered = currentFilter === 'active' ? activeProjects : doneProjects;
+        document.getElementById('count-active').innerText = projects.filter(p => p.step < 4).length;
+        document.getElementById('count-done').innerText = projects.filter(p => p.step >= 4).length;
 
         if(filtered.length === 0) {
             list.innerHTML = `<div style="text-align:center; padding:30px; color:#94a3b8; font-size:0.75rem;">Aucun dossier trouvé</div>`;
@@ -424,8 +462,8 @@
                     <span style="color:var(--gabon-bleu)">x${p.qty}</span>
                 </div>
                 <div style="font-size:0.75rem; color:#64748b;">👤 ${p.clientName}</div>
-                <div style="font-size:0.65rem; color:#94a3b8; display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
-                    <span>${p.city}</span>
+                <div style="font-size:0.65rem; color:#94a3b8; display:flex; justify-content:space-between; margin-top:5px;">
+                    <span>${FREIGHT_CONFIG[p.category]?.label || 'Standard'}</span>
                     <span style="color:${p.step >= 4 ? 'var(--gabon-vert)' : 'var(--dark)'}">${p.step >= 4 ? 'TERMINÉ' : STEP_NAMES[p.step]}</span>
                 </div>
             `;
@@ -440,7 +478,7 @@
         const p = projects.find(proj => proj.id === id);
         if (!p) return;
 
-        const stepIdx = (p.step >= 4) ? 3 : p.step;
+        const financial = calculateTotal(p);
         
         document.getElementById('empty-state').style.display = 'none';
         document.getElementById('project-details').style.display = 'block';
@@ -448,33 +486,33 @@
         document.getElementById('view-desc').innerText = `Hub: ${p.city} | Créé le ${p.date}`;
         document.getElementById('view-client-info').innerText = `${p.clientName} (${p.clientPhone || 'Pas de contact'})`;
         document.getElementById('view-notes').value = p.notes || "";
-        document.getElementById('val-total').innerText = ((p.achat + 680000) * p.qty).toLocaleString() + " F CFA";
+        
+        document.getElementById('financial-breakdown').innerHTML = `
+            Achat global : ${financial.details.achat.toLocaleString()} F<br>
+            Fret estimé : ${financial.details.fret.toLocaleString()} F<br>
+            Forfait Douane : ${financial.details.douane.toLocaleString()} F
+        `;
+        document.getElementById('val-total').innerText = financial.total.toLocaleString() + " F CFA";
         
         const badge = document.getElementById('view-badge');
         badge.innerText = p.step >= 4 ? "Livraison Effectuée" : "En cours de Transit";
         badge.className = `badge ${p.step >= 4 ? 'badge-completed' : 'badge-active'}`;
 
-        selectStep(stepIdx);
+        selectStep(p.step >= 4 ? 3 : p.step);
         renderList();
     }
 
     function selectStep(idx) {
         const p = projects.find(proj => proj.id === currentId);
         if (!p) return;
-
-        const steps = document.querySelectorAll('.step');
-        steps.forEach((s, i) => {
+        document.querySelectorAll('.step').forEach((s, i) => {
             s.classList.remove('completed', 'current');
             if(i < p.step) s.classList.add('completed');
             if(i === idx) s.classList.add('current');
         });
-
         document.getElementById('current-step-name').innerText = STEP_NAMES[idx];
         const btnVal = document.getElementById('btn-validate-step');
-        
         btnVal.style.display = (idx === p.step && p.step < 4) ? 'block' : 'none';
-        btnVal.innerText = p.step === 3 ? "Confirmer la Livraison" : "Valider l'étape";
-
         renderPhotos(idx);
     }
 
@@ -482,12 +520,11 @@
         const p = projects.find(proj => proj.id === currentId);
         const container = document.getElementById('photo-container');
         container.innerHTML = '';
+        const stepPhotos = p.photos[stepIdx] || [];
 
-        const stepPhotos = p.photos ? p.photos[stepIdx] || [] : [];
-        stepPhotos.forEach((src, photoIndex) => {
+        stepPhotos.forEach(src => {
             const img = document.createElement('img');
-            img.src = src;
-            img.className = 'photo-item';
+            img.src = src; img.className = 'photo-item';
             img.onclick = () => window.open(src);
             container.appendChild(img);
         });
@@ -498,13 +535,10 @@
             addBtn.innerHTML = `<i data-lucide="camera" size="20"></i><span>Capturer preuve</span>`;
             addBtn.onclick = () => triggerCamera(stepIdx);
             container.appendChild(addBtn);
-        } else if (stepPhotos.length === 0) {
-            container.innerHTML = `<p style="font-size:0.75rem; color:#94a3b8;">Aucune archive photo pour cette étape.</p>`;
         }
         lucide.createIcons();
     }
 
-    // --- LOGIQUE PHOTO RÉELLE ---
     function triggerCamera(stepIdx) {
         targetStepForUpload = stepIdx;
         document.getElementById('hidden-camera-input').click();
@@ -513,35 +547,23 @@
     function handleFileSelect(event) {
         const file = event.target.files[0];
         if (!file) return;
-
         const reader = new FileReader();
-        reader.onload = function(e) {
-            const base64Image = e.target.result;
+        reader.onload = (e) => {
             const p = projects.find(proj => proj.id === currentId);
-            if (p && targetStepForUpload !== null) {
-                if (!p.photos[targetStepForUpload]) p.photos[targetStepForUpload] = [];
-                p.photos[targetStepForUpload].push(base64Image);
-                save();
-                renderPhotos(targetStepForUpload);
-            }
+            p.photos[targetStepForUpload].push(e.target.result);
+            save(); renderPhotos(targetStepForUpload);
         };
         reader.readAsDataURL(file);
-        // Réinitialiser l'input pour permettre de reprendre la même photo si besoin
         event.target.value = '';
     }
 
     function validateCurrentStep() {
         const p = projects.find(proj => proj.id === currentId);
-        if(!p.photos[p.step] || p.photos[p.step].length === 0) {
-            return alert("Une photo de preuve est requise avant de valider.");
-        }
-
+        if(!p.photos[p.step].length) return alert("Une photo de preuve est requise.");
         if(confirm("Confirmer la validation de cette étape ?")) {
             p.step++;
             save();
-            if (p.step >= 4) {
-                switchList('done');
-            }
+            if (p.step >= 4) switchList('done');
             selectProject(currentId);
         }
     }
@@ -557,6 +579,8 @@
             clientName: client,
             clientPhone: document.getElementById('new-client-phone').value,
             achat: parseInt(document.getElementById('new-achat').value) || 0,
+            weight: parseFloat(document.getElementById('new-weight').value) || 1,
+            category: document.getElementById('new-category').value,
             qty: parseInt(document.getElementById('new-qty').value) || 1,
             city: document.getElementById('new-city').value,
             step: 0,
@@ -565,33 +589,28 @@
             date: new Date().toLocaleDateString()
         };
         projects.unshift(newP);
-        save();
-        hideModal();
-        switchList('active');
-        selectProject(newP.id);
+        save(); hideModal(); switchList('active'); selectProject(newP.id);
     }
 
     function deleteProject() {
-        if(currentUser.role !== 'ADMINISTRATEUR') return alert("Action réservée aux administrateurs.");
-        if(confirm("Supprimer ce dossier définitivement ?")) {
+        if(currentUser.role !== 'ADMINISTRATEUR') return alert("Action réservée aux admins.");
+        if(confirm("Supprimer ce dossier ?")) {
             projects = projects.filter(p => p.id !== currentId);
             currentId = null;
             document.getElementById('project-details').style.display = 'none';
             document.getElementById('empty-state').style.display = 'flex';
-            save();
-            renderList();
+            save(); renderList();
         }
     }
 
-    function save() { localStorage.setItem('ct241_secured_v1', JSON.stringify(projects)); }
-    
+    function save() { localStorage.setItem('ct241_secured_v2', JSON.stringify(projects)); }
     function saveNotes() { 
         const p = projects.find(proj => proj.id === currentId);
         if(p) { p.notes = document.getElementById('view-notes').value; save(); }
     }
-    
-    function showModal() { document.getElementById('modal-project').style.display = 'flex'; }
+    function showModal() { document.getElementById('modal-project').style.display = 'flex'; updatePricePreview(); }
     function hideModal() { document.getElementById('modal-project').style.display = 'none'; }
+    function logout() { location.reload(); }
 </script>
 </body>
 </html>
